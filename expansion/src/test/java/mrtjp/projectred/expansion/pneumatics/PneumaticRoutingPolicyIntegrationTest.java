@@ -158,6 +158,39 @@ class PneumaticRoutingPolicyIntegrationTest {
     }
 
     @Test
+    void highPolicyCostIsAppliedWhenRestrictedNodeIsTheEndpoint() {
+        PneumaticTubePayload payload = new PneumaticTubePayload();
+
+        TubeNode start = tube(false);
+        TubeNode restrictedEndpoint = tube(true);
+        TubeNode longMid = tube(false);
+        TubeNode normalEndpoint = tube(true);
+
+        GraphLink restricted = link(start, restrictedEndpoint, 1, Direction.EAST);
+        GraphLink longFirst = link(start, longMid, 2, Direction.WEST);
+        GraphLink longSecond = link(longMid, normalEndpoint, 3, Direction.NORTH);
+
+        setLinks(start, restricted, longFirst);
+        setLinks(restrictedEndpoint);
+        setLinks(longMid, longSecond);
+        setLinks(normalEndpoint);
+
+        PneumaticRouteRegistry.register((ignoredPayload, context) ->
+                context.direction() == Direction.EAST
+                        ? PneumaticRouteDecision.cost(RESTRICTION_COST)
+                        : PneumaticRouteDecision.PASS);
+
+        var result = find(
+                start,
+                payload,
+                (1 << Direction.EAST.ordinal()) | (1 << Direction.WEST.ordinal()));
+
+        assertEquals(1 << Direction.WEST.ordinal(), result.exitDirMask());
+        assertEquals(5, result.weight());
+        assertSame(PneumaticTransportMode.PASSIVE_NORMAL, result.mode());
+    }
+
+    @Test
     void highPolicyCostRouteRemainsUsableWhenItIsTheOnlyRoute() {
         PneumaticTubePayload payload = new PneumaticTubePayload();
 
