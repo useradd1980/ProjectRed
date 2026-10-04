@@ -1,5 +1,6 @@
 package mrtjp.projectred.api;
 
+import mrtjp.projectred.api.pneumatics.PneumaticRoutePolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
@@ -36,6 +37,15 @@ public interface IExpansionAPI {
      * @param interaction The interaction to register.
      */
     void registerFrameInteraction(FrameInteraction interaction);
+
+    /**
+     * Registers a policy that may influence pneumatic payload routing.
+     * Policies are evaluated only for pneumatic routing and must not mutate
+     * the topology graph from inside routing callbacks.
+     *
+     * @param policy Policy instance to register
+     */
+    void registerPneumaticRoutePolicy(PneumaticRoutePolicy policy);
 
     /**
      * Registers a {@link MovingBlockEntityRenderCallback} object to receive callbacks for block entities

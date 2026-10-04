@@ -1,6 +1,7 @@
 package mrtjp.projectred.expansion;
 
 import mrtjp.projectred.api.*;
+import mrtjp.projectred.api.pneumatics.PneumaticRoutePolicy;
 import mrtjp.projectred.expansion.client.MovementClientRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -14,6 +15,11 @@ public class ExpansionAPI implements IExpansionAPI {
     public static final IExpansionAPI INSTANCE = new ExpansionAPI();
 
     private ExpansionAPI() { }
+
+    @Override
+    public void registerPneumaticRoutePolicy(PneumaticRoutePolicy policy) {
+        PneumaticRouteRegistry.register(policy);
+    }
 
     @Override
     public void registerBlockMover(Block block, BlockMover mover) {

@@ -1,5 +1,6 @@
 package mrtjp.projectred.expansion.pneumatics;
 
+import mrtjp.projectred.expansion.PneumaticRouteRegistry;
 import mrtjp.projectred.expansion.graphs.GraphRouteTable;
 import mrtjp.projectred.expansion.part.PneumaticTubePayload;
 
@@ -64,6 +65,17 @@ public class PneumaticExitPathfinder {
         // If immediate exit found, nothing better will be found in the route table
         if (exitDirMask != 0) {
             return true;
+        }
+
+        // Registered policies require payload-aware route selection. Reuse the
+        // graph's cached links, but bypass the payload-agnostic route table so
+        // a longer permitted path cannot be hidden by a shorter blocked path.
+        if (PneumaticRouteRegistry.hasPolicies()) {
+            var policyResult = new PolicyAwarePneumaticPathfinder(
+                    startContainer, payload, dirMask, mode).result();
+            exitDirMask = policyResult.exitDirMask();
+            exitWeight = policyResult.weight();
+            return exitDirMask != 0;
         }
 
         // Check route table for routes in each direction

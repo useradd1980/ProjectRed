@@ -6,7 +6,9 @@ import codechicken.lib.vec.Vector3;
 import codechicken.multipart.api.part.TickablePart;
 import codechicken.multipart.block.TileMultipart;
 import mrtjp.projectred.api.IConnectable;
+import mrtjp.projectred.api.pneumatics.PneumaticRouteNodeContext;
 import mrtjp.projectred.core.CenterLookup;
+import mrtjp.projectred.expansion.PneumaticRouteRegistry;
 import mrtjp.projectred.expansion.TubeType;
 import mrtjp.projectred.expansion.client.PneumaticSmokeParticle;
 import mrtjp.projectred.expansion.graphs.ClientSideLinkCache;
@@ -326,6 +328,14 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
 
     @Override
     public boolean requiresActiveNode() {
+        // Addons may mark an otherwise-redundant tube location as routing
+        // significant. This decision is payload-independent so the topology
+        // remains globally cacheable.
+        if (PneumaticRouteRegistry.requiresRoutingNode(
+                new PneumaticRouteNodeContext(level(), pos()))) {
+            return true;
+        }
+
         int connectedTubes = 0;
         for (int s = 0; s < 6; s++) {
             if (maskConnects(s)) {
