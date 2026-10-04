@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.Block;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class ExpansionAPI implements IExpansionAPI {
 
@@ -28,6 +29,11 @@ public class ExpansionAPI implements IExpansionAPI {
     @Override
     public void registerPneumaticTubeConnectionPolicy(PneumaticTubeConnectionPolicy policy) {
         PneumaticTubeConnectionRegistry.register(policy);
+    }
+
+    @Override
+    public void registerPneumaticLowLoadPowerPredicate(Predicate<PneumaticTube> predicate) {
+        PneumaticTubePowerRegistry.register(predicate);
     }
 
     @Override

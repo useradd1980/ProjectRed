@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 
 import java.util.Set;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 public interface IExpansionAPI {
@@ -57,6 +58,15 @@ public interface IExpansionAPI {
      * @param policy Connection policy to register
      */
     void registerPneumaticTubeConnectionPolicy(PneumaticTubeConnectionPolicy policy);
+
+    /**
+     * Registers a predicate that marks pneumatic tubes as low-load power
+     * conductors. ProjectRed owns the electrical simulation; addons own the
+     * metadata or other state that decides whether a tube is enabled.
+     *
+     * @param predicate power-enablement predicate
+     */
+    void registerPneumaticLowLoadPowerPredicate(Predicate<PneumaticTube> predicate);
 
     /**
      * Returns the pneumatic tube occupying the center multipart slot at the

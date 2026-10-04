@@ -11,8 +11,14 @@ import mrtjp.projectred.api.pneumatics.PneumaticRouteNodeContext;
 import mrtjp.projectred.api.pneumatics.PneumaticTube;
 import mrtjp.projectred.api.pneumatics.PneumaticTubeData;
 import mrtjp.projectred.core.CenterLookup;
+import mrtjp.projectred.core.power.ILowLoadMachine;
+import mrtjp.projectred.core.power.ILowLoadPowerLine;
+import mrtjp.projectred.core.power.IPowerConnectable;
+import mrtjp.projectred.core.power.IPowerConductorSource;
+import mrtjp.projectred.core.power.PowerConductor;
 import mrtjp.projectred.expansion.PneumaticRouteRegistry;
 import mrtjp.projectred.expansion.PneumaticTubeConnectionRegistry;
+import mrtjp.projectred.expansion.PneumaticTubePowerRegistry;
 import mrtjp.projectred.expansion.TubeType;
 import mrtjp.projectred.expansion.client.PneumaticSmokeParticle;
 import mrtjp.projectred.expansion.graphs.ClientSideLinkCache;
@@ -35,6 +41,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +50,8 @@ import java.util.Objects;
 import static mrtjp.projectred.core.client.particle.ParticleAction.*;
 import static mrtjp.projectred.expansion.ProjectRedExpansion.LOGGER;
 
-public class PneumaticTubePart extends GraphContainerTubePart implements PneumaticTransportContainer, GraphContainer, TickablePart, PneumaticTube {
+public class PneumaticTubePart extends GraphContainerTubePart implements PneumaticTransportContainer, GraphContainer,
+        TickablePart, PneumaticTube, ILowLoadPowerLine, IPowerConnectable, IPowerConductorSource {
 
     private static final int KEY_NEW_PAYLOAD = 0x10;
     private static final int KEY_PAYLOAD_UPDATE = 0x11;
@@ -58,6 +66,7 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
     public final ClientSideLinkCache linkCache = new ClientSideLinkCache();
     private final PneumaticTransport transport = new PneumaticTransport(this);
     private final PneumaticTubeData customData = new PneumaticTubeData();
+    private final PowerConductor lowLoadConductor = new PowerConductor(this, 0.01, 16);
 
     private int lastRoundRobinDir = -1;
 
@@ -73,6 +82,56 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
     public PneumaticTransport getPneumaticTransport() {
         return transport;
     }
+
+    //region Optional low-load power conductor
+    private boolean isLowLoadPowerEnabled() {
+        return PneumaticTubePowerRegistry.isLowLoadPowerEnabled(this);
+    }
+
+    @Override
+    public long getTime() {
+        return level().getGameTime();
+    }
+
+    @Override
+    public PowerConductor getConductor(int dir) {
+        return lowLoadConductor;
+    }
+
+    @Override
+    public List<PowerConductor> getConnectedConductors() {
+        if (!isLowLoadPowerEnabled()) {
+            return Collections.emptyList();
+        }
+
+        List<PowerConductor> conductors = new ArrayList<>();
+
+        for (int s = 0; s < 6; s++) {
+            CenterLookup lookup;
+
+            if (maskConnectsIn(s)) {
+                lookup = CenterLookup.lookupInsideFace(level(), pos(), s);
+            } else if (maskConnectsOut(s)) {
+                lookup = CenterLookup.lookupStraightCenter(level(), pos(), s);
+            } else {
+                continue;
+            }
+
+            if (lookup.part instanceof PneumaticTubePart otherTube
+                    && !otherTube.isLowLoadPowerEnabled()) {
+                continue;
+            }
+
+            if (lookup.part instanceof IPowerConnectable powerPart) {
+                conductors.add(powerPart.getConductor(lookup.otherDirection));
+            } else if (lookup.tile instanceof IPowerConnectable powerTile) {
+                conductors.add(powerTile.getConductor(lookup.otherDirection));
+            }
+        }
+
+        return conductors;
+    }
+    //endregion
 
     //region Save/load
     @Override
@@ -193,7 +252,7 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         if (level().isClientSide) return;
 
         tile().setChanged();
-        updateOutside();
+        updateInsideAndOutside();
 
         // Connection policy may depend on metadata. Neighbouring multipart
         // tubes must also rebuild their masks when this tube's metadata changes.
@@ -301,6 +360,10 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
     public void tick() {
         super.tick();
         transport.tick();
+
+        if (!level().isClientSide && isLowLoadPowerEnabled()) {
+            lowLoadConductor.tick();
+        }
     }
     //endregion
 
@@ -327,6 +390,12 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
             return false;
         }
 
+        if (isLowLoadPowerEnabled()
+                && (part instanceof ILowLoadPowerLine
+                || part instanceof ILowLoadMachine)) {
+            return true;
+        }
+
         if (part instanceof PneumaticTransportContainer) return true;
 
         return super.canConnectPart(part, s);
@@ -334,6 +403,21 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
 
     @Override
     public boolean discoverStraightOverride(int s) {
+        if (isLowLoadPowerEnabled()) {
+            CenterLookup lookup =
+                    CenterLookup.lookupStraightCenter(level(), pos(), s);
+
+            if (lookup.tile instanceof IConnectable connectable
+                    && (lookup.tile instanceof ILowLoadPowerLine
+                    || lookup.tile instanceof ILowLoadMachine)
+                    && connectable.connectStraight(
+                            this,
+                            lookup.otherDirection,
+                            -1)) {
+                return true;
+            }
+        }
+
         return hasEndpointOnSide(s);
     }
 
