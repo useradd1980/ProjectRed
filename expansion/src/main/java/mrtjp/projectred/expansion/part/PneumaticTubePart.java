@@ -6,6 +6,7 @@ import codechicken.lib.vec.Vector3;
 import codechicken.multipart.api.part.TickablePart;
 import codechicken.multipart.block.TileMultipart;
 import mrtjp.projectred.api.IConnectable;
+import mrtjp.projectred.api.pneumatics.PneumaticRouteContext;
 import mrtjp.projectred.api.pneumatics.PneumaticRouteNodeContext;
 import mrtjp.projectred.api.pneumatics.PneumaticTube;
 import mrtjp.projectred.api.pneumatics.PneumaticTubeData;
@@ -610,6 +611,23 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
     public boolean canItemEnterTube(PneumaticTubePayload payload, int side) {
         if (!maskConnects(side)) {
             return false;
+        }
+
+        // A route policy must also be able to reject the first physical tube
+        // a payload is being inserted into. Pathfinding normally evaluates
+        // transitions after the start container, which is too late for
+        // per-tube admission rules such as painted tube colours.
+        if (PneumaticRouteRegistry.hasPolicies()) {
+            Direction incomingSide = Direction.values()[side];
+            var decision = PneumaticRouteRegistry.evaluate(
+                    payload,
+                    new PneumaticRouteContext(
+                            level(),
+                            pos().relative(incomingSide),
+                            pos(),
+                            incomingSide.getOpposite(),
+                            0));
+            if (!decision.allowed()) return false;
         }
 
         PneumaticExitPathfinder exitFinder = new PneumaticExitPathfinder(this, getNode().getRouteTable(), payload, ~(1 << side), List.of(PneumaticTransportMode.PASSIVE_NORMAL));
