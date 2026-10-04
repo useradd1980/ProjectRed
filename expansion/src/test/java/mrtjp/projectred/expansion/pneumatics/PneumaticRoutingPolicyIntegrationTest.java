@@ -1,5 +1,6 @@
 package mrtjp.projectred.expansion.pneumatics;
 
+import mrtjp.projectred.api.pneumatics.PneumaticRouteDecision;
 import mrtjp.projectred.expansion.PneumaticRouteRegistry;
 import mrtjp.projectred.expansion.graphs.GraphContainer;
 import mrtjp.projectred.expansion.graphs.GraphLink;
@@ -29,6 +30,8 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 class PneumaticRoutingPolicyIntegrationTest {
+
+    private static final int RESTRICTION_COST = 1_000_000;
 
     @BeforeEach
     @AfterEach
@@ -106,8 +109,88 @@ class PneumaticRoutingPolicyIntegrationTest {
 
         PneumaticRouteRegistry.register((ignoredPayload, context) ->
                 context.direction() == Direction.EAST
-                        ? mrtjp.projectred.api.pneumatics.PneumaticRouteDecision.BLOCK
-                        : mrtjp.projectred.api.pneumatics.PneumaticRouteDecision.PASS);
+                        ? PneumaticRouteDecision.BLOCK
+                        : PneumaticRouteDecision.PASS);
+
+        var result = find(
+                start,
+                payload,
+                (1 << Direction.EAST.ordinal()) | (1 << Direction.WEST.ordinal()));
+
+        assertEquals(1 << Direction.WEST.ordinal(), result.exitDirMask());
+        assertEquals(5, result.weight());
+        assertSame(PneumaticTransportMode.PASSIVE_NORMAL, result.mode());
+    }
+
+    @Test
+    void highPolicyCostMakesLongerUnrestrictedRoutePreferable() {
+        PneumaticTubePayload payload = new PneumaticTubePayload();
+
+        TubeNode start = tube(false);
+        TubeNode restrictedMid = tube(false);
+        TubeNode unrestrictedMid = tube(false);
+        TubeNode destination = tube(true);
+
+        GraphLink restrictedFirst = link(start, restrictedMid, 1, Direction.EAST);
+        GraphLink restrictedSecond = link(restrictedMid, destination, 1, Direction.NORTH);
+
+        GraphLink unrestrictedFirst = link(start, unrestrictedMid, 2, Direction.WEST);
+        GraphLink unrestrictedSecond = link(unrestrictedMid, destination, 3, Direction.NORTH);
+
+        setLinks(start, restrictedFirst, unrestrictedFirst);
+        setLinks(restrictedMid, restrictedSecond);
+        setLinks(unrestrictedMid, unrestrictedSecond);
+        setLinks(destination);
+
+        PneumaticRouteRegistry.register((ignoredPayload, context) ->
+                context.direction() == Direction.EAST
+                        ? PneumaticRouteDecision.cost(RESTRICTION_COST)
+                        : PneumaticRouteDecision.PASS);
+
+        var result = find(
+                start,
+                payload,
+                (1 << Direction.EAST.ordinal()) | (1 << Direction.WEST.ordinal()));
+
+        assertEquals(1 << Direction.WEST.ordinal(), result.exitDirMask());
+        assertEquals(5, result.weight());
+        assertSame(PneumaticTransportMode.PASSIVE_NORMAL, result.mode());
+    }
+
+    @Test
+    void highPolicyCostRouteRemainsUsableWhenItIsTheOnlyRoute() {
+        PneumaticTubePayload payload = new PneumaticTubePayload();
+
+        TubeNode start = tube(false);
+        TubeNode restrictedMid = tube(false);
+        TubeNode destination = tube(true);
+
+        GraphLink restrictedFirst = link(start, restrictedMid, 1, Direction.EAST);
+        GraphLink restrictedSecond = link(restrictedMid, destination, 1, Direction.NORTH);
+
+        setLinks(start, restrictedFirst);
+        setLinks(restrictedMid, restrictedSecond);
+        setLinks(destination);
+
+        PneumaticRouteRegistry.register((ignoredPayload, context) ->
+                context.direction() == Direction.EAST
+                        ? PneumaticRouteDecision.cost(RESTRICTION_COST)
+                        : PneumaticRouteDecision.PASS);
+
+        var result = find(
+                start,
+                payload,
+                1 << Direction.EAST.ordinal());
+
+        assertEquals(1 << Direction.EAST.ordinal(), result.exitDirMask());
+        assertEquals(RESTRICTION_COST + 2, result.weight());
+        assertSame(PneumaticTransportMode.PASSIVE_NORMAL, result.mode());
+    }
+
+    private static PneumaticExitPathfinder.PneumaticExits find(
+            TubeNode start,
+            PneumaticTubePayload payload,
+            int directionMask) {
 
         GraphRouteTable unusedRouteTable = new GraphRouteTable(
                 new HashMap<>(),
@@ -115,17 +198,13 @@ class PneumaticRoutingPolicyIntegrationTest {
                 List.of(),
                 List.of());
 
-        var result = new PneumaticExitPathfinder(
+        return new PneumaticExitPathfinder(
                 start.transport(),
                 unusedRouteTable,
                 payload,
-                (1 << Direction.EAST.ordinal()) | (1 << Direction.WEST.ordinal()),
+                directionMask,
                 List.of(PneumaticTransportMode.PASSIVE_NORMAL))
                 .result();
-
-        assertEquals(1 << Direction.WEST.ordinal(), result.exitDirMask());
-        assertEquals(5, result.weight());
-        assertSame(PneumaticTransportMode.PASSIVE_NORMAL, result.mode());
     }
 
     private static Endpoint endpoint(boolean acceptsItems) {
