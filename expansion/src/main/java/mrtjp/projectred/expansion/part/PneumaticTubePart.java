@@ -7,6 +7,8 @@ import codechicken.multipart.api.part.TickablePart;
 import codechicken.multipart.block.TileMultipart;
 import mrtjp.projectred.api.IConnectable;
 import mrtjp.projectred.api.pneumatics.PneumaticRouteNodeContext;
+import mrtjp.projectred.api.pneumatics.PneumaticTube;
+import mrtjp.projectred.api.pneumatics.PneumaticTubeData;
 import mrtjp.projectred.core.CenterLookup;
 import mrtjp.projectred.expansion.PneumaticRouteRegistry;
 import mrtjp.projectred.expansion.TubeType;
@@ -21,6 +23,8 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.item.ItemStack;
@@ -37,7 +41,7 @@ import java.util.Objects;
 import static mrtjp.projectred.core.client.particle.ParticleAction.*;
 import static mrtjp.projectred.expansion.ProjectRedExpansion.LOGGER;
 
-public class PneumaticTubePart extends GraphContainerTubePart implements PneumaticTransportContainer, GraphContainer, TickablePart {
+public class PneumaticTubePart extends GraphContainerTubePart implements PneumaticTransportContainer, GraphContainer, TickablePart, PneumaticTube {
 
     private static final int KEY_NEW_PAYLOAD = 0x10;
     private static final int KEY_PAYLOAD_UPDATE = 0x11;
@@ -45,9 +49,13 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
     private static final int KEY_PAYLOAD_REMOVE = 0x13;
     private static final int KEY_NODE_LINKS_UPDATE = 0x14;
     private static final int KEY_NODE_STATE_UPDATE = 0x15;
+    private static final int KEY_TUBE_DATA_UPDATE = 0x16;
+
+    private static final String TUBE_DATA_KEY = "projectred_tube_data";
 
     public final ClientSideLinkCache linkCache = new ClientSideLinkCache();
     private final PneumaticTransport transport = new PneumaticTransport(this);
+    private final PneumaticTubeData customData = new PneumaticTubeData();
 
     private int lastRoundRobinDir = -1;
 
@@ -70,6 +78,11 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         super.save(tag, lookupProvider);
         tag.putByte("last_dir", (byte) lastRoundRobinDir);
         transport.save(tag, lookupProvider);
+        if (customData.isEmpty()) {
+            tag.remove(TUBE_DATA_KEY);
+        } else {
+            tag.put(TUBE_DATA_KEY, customData.save());
+        }
     }
 
     @Override
@@ -77,6 +90,9 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         super.load(tag, lookupProvider);
         lastRoundRobinDir = tag.getByte("last_dir");
         transport.load(tag, lookupProvider);
+        customData.load(tag.contains(TUBE_DATA_KEY, Tag.TAG_COMPOUND)
+                ? tag.getCompound(TUBE_DATA_KEY)
+                : new CompoundTag());
     }
 
     @Override
@@ -84,6 +100,7 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         super.writeDesc(packet);
         transport.writeDesc(packet);
         linkCache.writeDesc(packet);
+        packet.writeCompoundNBT(customData.save());
     }
 
     @Override
@@ -91,6 +108,7 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         super.readDesc(packet);
         transport.readDesc(packet);
         linkCache.readDesc(packet);
+        customData.load(packet.readCompoundNBT());
     }
     //endregion
 
@@ -117,6 +135,10 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
             case KEY_PAYLOAD_REMOVE -> readPayloadRemoved(packet);
             case KEY_NODE_LINKS_UPDATE -> linkCache.readLinkUpdate(packet);
             case KEY_NODE_STATE_UPDATE -> linkCache.readStateUpdate(packet);
+            case KEY_TUBE_DATA_UPDATE -> {
+                customData.load(packet.readCompoundNBT());
+                tile().markRender();
+            }
             default -> super.read(packet, key);
         }
     }
@@ -161,6 +183,18 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         sendUpdate(KEY_NODE_STATE_UPDATE, linkCache::writeStateUpdate);
     }
 
+    private void sendTubeDataUpdate() {
+        sendUpdate(KEY_TUBE_DATA_UPDATE, out -> out.writeCompoundNBT(customData.save()));
+    }
+
+    private void onTubeDataChanged() {
+        if (level().isClientSide) return;
+
+        tile().setChanged();
+        node.markLinksChanged();
+        sendTubeDataUpdate();
+    }
+
     private void readPayloadHandoff(MCDataInput packet) {
         int id = packet.readInt();
         PneumaticTubePayload payload = transport.removePayload(id);
@@ -184,6 +218,42 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         for (int i = 0; i < count; i++) {
             transport.removePayload(packet.readInt());
         }
+    }
+    //endregion
+
+    //region PneumaticTube API
+    @Override
+    public net.minecraft.world.level.Level getLevel() {
+        return level();
+    }
+
+    @Override
+    public net.minecraft.core.BlockPos getPos() {
+        return pos();
+    }
+
+    @Override
+    public boolean hasData(ResourceLocation key) {
+        return customData.has(key);
+    }
+
+    @Override
+    public CompoundTag getData(ResourceLocation key) {
+        return customData.get(key);
+    }
+
+    @Override
+    public void setData(ResourceLocation key, CompoundTag value) {
+        customData.put(key, value);
+        onTubeDataChanged();
+    }
+
+    @Override
+    public void removeData(ResourceLocation key) {
+        if (!customData.has(key)) return;
+
+        customData.remove(key);
+        onTubeDataChanged();
     }
     //endregion
 

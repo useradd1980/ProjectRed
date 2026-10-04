@@ -1,6 +1,7 @@
 package mrtjp.projectred.api;
 
 import mrtjp.projectred.api.pneumatics.PneumaticRoutePolicy;
+import mrtjp.projectred.api.pneumatics.PneumaticTube;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
@@ -8,6 +9,7 @@ import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 
 import java.util.Set;
+import javax.annotation.Nullable;
 
 public interface IExpansionAPI {
 
@@ -46,6 +48,13 @@ public interface IExpansionAPI {
      * @param policy Policy instance to register
      */
     void registerPneumaticRoutePolicy(PneumaticRoutePolicy policy);
+
+    /**
+     * Returns the pneumatic tube occupying the center multipart slot at the
+     * supplied position, or null when no pneumatic tube is present.
+     */
+    @Nullable
+    PneumaticTube getPneumaticTube(Level level, BlockPos pos);
 
     /**
      * Registers a {@link MovingBlockEntityRenderCallback} object to receive callbacks for block entities

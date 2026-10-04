@@ -1,8 +1,11 @@
 package mrtjp.projectred.expansion;
 
 import mrtjp.projectred.api.*;
+import codechicken.multipart.block.TileMultipart;
 import mrtjp.projectred.api.pneumatics.PneumaticRoutePolicy;
+import mrtjp.projectred.api.pneumatics.PneumaticTube;
 import mrtjp.projectred.expansion.client.MovementClientRegistry;
+import mrtjp.projectred.expansion.part.PneumaticTubePart;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -19,6 +22,15 @@ public class ExpansionAPI implements IExpansionAPI {
     @Override
     public void registerPneumaticRoutePolicy(PneumaticRoutePolicy policy) {
         PneumaticRouteRegistry.register(policy);
+    }
+
+    @Override
+    public PneumaticTube getPneumaticTube(Level level, BlockPos pos) {
+        var tile = level.getBlockEntity(pos);
+        if (!(tile instanceof TileMultipart multipart)) return null;
+
+        var part = multipart.getSlottedPart(6);
+        return part instanceof PneumaticTubePart tube ? tube : null;
     }
 
     @Override
