@@ -3,6 +3,7 @@ package mrtjp.projectred.expansion;
 import mrtjp.projectred.api.*;
 import codechicken.multipart.block.TileMultipart;
 import mrtjp.projectred.api.pneumatics.PneumaticRoutePolicy;
+import mrtjp.projectred.api.pneumatics.PneumaticTubeConnectionPolicy;
 import mrtjp.projectred.api.pneumatics.PneumaticTube;
 import mrtjp.projectred.expansion.client.MovementClientRegistry;
 import mrtjp.projectred.expansion.part.PneumaticTubePart;
@@ -22,6 +23,11 @@ public class ExpansionAPI implements IExpansionAPI {
     @Override
     public void registerPneumaticRoutePolicy(PneumaticRoutePolicy policy) {
         PneumaticRouteRegistry.register(policy);
+    }
+
+    @Override
+    public void registerPneumaticTubeConnectionPolicy(PneumaticTubeConnectionPolicy policy) {
+        PneumaticTubeConnectionRegistry.register(policy);
     }
 
     @Override

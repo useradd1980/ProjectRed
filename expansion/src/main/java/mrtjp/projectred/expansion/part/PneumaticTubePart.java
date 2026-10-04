@@ -12,6 +12,7 @@ import mrtjp.projectred.api.pneumatics.PneumaticTube;
 import mrtjp.projectred.api.pneumatics.PneumaticTubeData;
 import mrtjp.projectred.core.CenterLookup;
 import mrtjp.projectred.expansion.PneumaticRouteRegistry;
+import mrtjp.projectred.expansion.PneumaticTubeConnectionRegistry;
 import mrtjp.projectred.expansion.TubeType;
 import mrtjp.projectred.expansion.client.PneumaticSmokeParticle;
 import mrtjp.projectred.expansion.graphs.ClientSideLinkCache;
@@ -192,6 +193,16 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         if (level().isClientSide) return;
 
         tile().setChanged();
+        updateOutside();
+
+        // Connection policy may depend on metadata. Neighbouring multipart
+        // tubes must also rebuild their masks when this tube's metadata changes.
+        for (int s = 0; s < 6; s++) {
+            var neighbour = posOfStraight(s);
+            level().neighborChanged(
+                    neighbour, tile().getBlockState().getBlock(), pos());
+        }
+
         node.markLinksChanged();
         sendTubeDataUpdate();
     }
@@ -308,6 +319,14 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
 
     @Override
     public boolean canConnectPart(IConnectable part, int s) {
+        if (part instanceof PneumaticTube otherTube
+                && !PneumaticTubeConnectionRegistry.canConnect(
+                        this,
+                        otherTube,
+                        Direction.values()[s])) {
+            return false;
+        }
+
         if (part instanceof PneumaticTransportContainer) return true;
 
         return super.canConnectPart(part, s);

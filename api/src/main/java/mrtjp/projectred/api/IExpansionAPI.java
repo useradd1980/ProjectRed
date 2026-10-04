@@ -1,6 +1,7 @@
 package mrtjp.projectred.api;
 
 import mrtjp.projectred.api.pneumatics.PneumaticRoutePolicy;
+import mrtjp.projectred.api.pneumatics.PneumaticTubeConnectionPolicy;
 import mrtjp.projectred.api.pneumatics.PneumaticTube;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -48,6 +49,14 @@ public interface IExpansionAPI {
      * @param policy Policy instance to register
      */
     void registerPneumaticRoutePolicy(PneumaticRoutePolicy policy);
+
+    /**
+     * Registers a policy that may veto physical tube-to-tube connections.
+     * Policies are evaluated when ProjectRed rebuilds tube connection masks.
+     *
+     * @param policy Connection policy to register
+     */
+    void registerPneumaticTubeConnectionPolicy(PneumaticTubeConnectionPolicy policy);
 
     /**
      * Returns the pneumatic tube occupying the center multipart slot at the
