@@ -36,6 +36,7 @@ dependencies {
     accessTransformers "io.codechicken:CBMultipart:${mc_version}-${cbm_version}"
 
     compileOnly project(":api")
+    testCompileOnly project(":api")
     implementation project(":core")
 
     compileOnly "maven.modrinth:embeddium:${embeddium_version}"
