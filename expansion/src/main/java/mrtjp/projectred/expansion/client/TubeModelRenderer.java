@@ -51,6 +51,10 @@ public class TubeModelRenderer {
                 pipe.getPipeType() == TubeType.VOID_PNEUMATIC_TUBE);
     }
 
+    public static void render(CCRenderState ccrs, int modelKey, TextureAtlasSprite icon, @Nullable MicroMaterial material, boolean hasRedstone, int signal) {
+        render(ccrs, modelKey, icon, material, hasRedstone, signal, false);
+    }
+
     public static void render(CCRenderState ccrs, int modelKey, TextureAtlasSprite icon, @Nullable MicroMaterial material, boolean hasRedstone, int signal, boolean isVoidTube) {
         IconTransformation uvt = new IconTransformation(icon);
 
@@ -70,6 +74,10 @@ public class TubeModelRenderer {
                 getOrGenerateWireModel(modelKey).render(ccrs, uvt, ColourMultiplier.instance(c));
             }
         }
+    }
+
+    public static void renderInventory(CCRenderState ccrs, TextureAtlasSprite icon, Transformation transformation) {
+        renderInventory(ccrs, icon, transformation, false);
     }
 
     public static void renderInventory(CCRenderState ccrs, TextureAtlasSprite icon, Transformation transformation, boolean isVoidTube) {

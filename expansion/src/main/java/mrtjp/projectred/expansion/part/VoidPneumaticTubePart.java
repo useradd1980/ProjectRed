@@ -1,6 +1,7 @@
 package mrtjp.projectred.expansion.part;
 
 import mrtjp.projectred.expansion.TubeType;
+import mrtjp.projectred.expansion.pneumatics.PneumaticTransport;
 import mrtjp.projectred.expansion.pneumatics.PneumaticTransportMode;
 
 import java.util.Collection;
@@ -46,12 +47,16 @@ public class VoidPneumaticTubePart extends PneumaticTubePart {
         super.tick();
         if (level().isClientSide) return;
 
-        Collection<Integer> removed = getPneumaticTransport().removePayloadsConditionally(
-                payload -> payload.getProgress() >= MAX_PROGRESS / 2);
+        Collection<Integer> removed = discardArrivedPayloads(getPneumaticTransport());
         if (!removed.isEmpty()) {
             sendPayloadRemoved(removed);
             tile().setChanged();
         }
+    }
+
+    static Collection<Integer> discardArrivedPayloads(PneumaticTransport transport) {
+        return transport.removePayloadsConditionally(
+                payload -> payload.getProgress() >= MAX_PROGRESS / 2);
     }
 
     @Override
