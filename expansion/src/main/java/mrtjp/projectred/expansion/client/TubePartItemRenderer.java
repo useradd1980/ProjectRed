@@ -50,6 +50,7 @@ public class TubePartItemRenderer implements IItemRenderer {
         ccrs.overlay = packedOverlay;
         ccrs.bind(RenderType.cutout(), getter, mStack);
 
-        TubeModelRenderer.renderInventory(ccrs, type.getTextures().get(0), RedundantTransformation.INSTANCE);
+        TubeModelRenderer.renderInventory(ccrs, type.getTextures().get(0), RedundantTransformation.INSTANCE,
+                type == TubeType.VOID_PNEUMATIC_TUBE);
     }
 }

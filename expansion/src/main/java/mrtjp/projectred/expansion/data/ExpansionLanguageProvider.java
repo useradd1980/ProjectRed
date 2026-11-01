@@ -34,6 +34,7 @@ public class ExpansionLanguageProvider extends LanguageProvider {
         add(DEPLOYER_BLOCK.get(), "Deployer");
 
         add(TubeType.PNEUMATIC_TUBE.getItem(), "Pneumatic Tube");
+        add(TubeType.VOID_PNEUMATIC_TUBE.getItem(), "Void Pneumatic Tube");
 
         add(RECIPE_PLAN_ITEM.get(), "Recipe Plan");
         add(EMPTY_BATTERY_ITEM.get(), "Empty Battery");

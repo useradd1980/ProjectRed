@@ -16,6 +16,7 @@ public class ExpansionParts {
     public static final String ID_FRAME = "frame";
 
     public static final String ID_PNEUMATIC_TUBE = "pneumatic_tube";
+    public static final String ID_VOID_PNEUMATIC_TUBE = "void_pneumatic_tube";
 
     public static Supplier<MultipartType<FramePart>> FRAME_PART;
 

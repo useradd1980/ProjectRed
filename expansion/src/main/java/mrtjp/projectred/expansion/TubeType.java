@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
 import mrtjp.projectred.expansion.item.TubePartItem;
 import mrtjp.projectred.expansion.part.BaseTubePart;
 import mrtjp.projectred.expansion.part.PneumaticTubePart;
+import mrtjp.projectred.expansion.part.VoidPneumaticTubePart;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
@@ -25,10 +26,12 @@ import java.util.function.Supplier;
 
 import static mrtjp.projectred.expansion.ProjectRedExpansion.MOD_ID;
 import static mrtjp.projectred.expansion.init.ExpansionParts.ID_PNEUMATIC_TUBE;
+import static mrtjp.projectred.expansion.init.ExpansionParts.ID_VOID_PNEUMATIC_TUBE;
 
 public enum TubeType {
 
     PNEUMATIC_TUBE(ID_PNEUMATIC_TUBE, PneumaticTubePart::new, "pneumatic_tube"),
+    VOID_PNEUMATIC_TUBE(ID_VOID_PNEUMATIC_TUBE, VoidPneumaticTubePart::new, "pneumatic_tube"),
     ;
 
     private final String unlocalName;

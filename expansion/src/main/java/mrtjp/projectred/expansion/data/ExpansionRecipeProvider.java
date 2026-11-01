@@ -141,6 +141,15 @@ public class ExpansionRecipeProvider extends RecipeProvider {
                 .patternLine("BGB")
                 .patternLine("BGB");
 
+        // A terminal tube that irreversibly destroys routed items.
+        shapedRecipe(TubeType.VOID_PNEUMATIC_TUBE.getItem(), 1)
+                .key('T', TubeType.PNEUMATIC_TUBE.getItem())
+                .key('O', Blocks.OBSIDIAN)
+                .key('E', Items.ENDER_PEARL)
+                .patternLine(" O ")
+                .patternLine("OTO")
+                .patternLine(" E ");
+
         // Items
         shapedRecipe(BATTERY_ITEM.get(), 1)
                 .key('E', ELECTROTINE_DUST_TAG)

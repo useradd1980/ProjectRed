@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "T": {
+      "item": "projectred_expansion:pneumatic_tube"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
+    },
+    "E": {
+      "item": "minecraft:ender_pearl"
+    }
+  },
+  "pattern": [
+    " O ",
+    "OTO",
+    " E "
+  ],
+  "result": {
+    "count": 1,
+    "id": "projectred_expansion:void_pneumatic_tube"
+  }
+}

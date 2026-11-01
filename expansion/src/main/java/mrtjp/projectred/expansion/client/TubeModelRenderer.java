@@ -6,6 +6,7 @@ import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.vec.Transformation;
 import codechicken.lib.vec.uv.IconTransformation;
 import codechicken.microblock.api.MicroMaterial;
+import mrtjp.projectred.expansion.TubeType;
 import mrtjp.projectred.expansion.part.BaseTubePart;
 import mrtjp.projectred.expansion.part.RedstoneTubePart;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -46,10 +47,11 @@ public class TubeModelRenderer {
     public static void render(CCRenderState ccrs, BaseTubePart pipe) {
         boolean hasRs = (pipe instanceof RedstoneTubePart rpp) && rpp.hasRedstone();
         int signal = (pipe instanceof RedstoneTubePart rpp) ? rpp.getSignal() : 0;
-        render(ccrs, modelKey(pipe), pipe.getIcon(), pipe.getMaterial(), hasRs, signal);
+        render(ccrs, modelKey(pipe), pipe.getIcon(), pipe.getMaterial(), hasRs, signal,
+                pipe.getPipeType() == TubeType.VOID_PNEUMATIC_TUBE);
     }
 
-    public static void render(CCRenderState ccrs, int modelKey, TextureAtlasSprite icon, @Nullable MicroMaterial material, boolean hasRedstone, int signal) {
+    public static void render(CCRenderState ccrs, int modelKey, TextureAtlasSprite icon, @Nullable MicroMaterial material, boolean hasRedstone, int signal, boolean isVoidTube) {
         IconTransformation uvt = new IconTransformation(icon);
 
         if (material != null && false) {//TODO
@@ -57,7 +59,12 @@ public class TubeModelRenderer {
 //            model.renderWire(ccrs, uvt, c);
 //            model.renderMaterial(ccrs, material, false);
         } else {
-            getOrGeneratePipeModel(modelKey).render(ccrs, uvt);
+            if (isVoidTube) {
+                // Reuse the base sprite with a distinctive void-purple tint.
+                getOrGeneratePipeModel(modelKey).render(ccrs, uvt, ColourMultiplier.instance(0xFF7954D0));
+            } else {
+                getOrGeneratePipeModel(modelKey).render(ccrs, uvt);
+            }
             if (hasRedstone) {
                 int c = (signal & 0xFF) / 2 + 60 << 24 | 0xFF;
                 getOrGenerateWireModel(modelKey).render(ccrs, uvt, ColourMultiplier.instance(c));
@@ -65,8 +72,13 @@ public class TubeModelRenderer {
         }
     }
 
-    public static void renderInventory(CCRenderState ccrs, TextureAtlasSprite icon, Transformation transformation) {
+    public static void renderInventory(CCRenderState ccrs, TextureAtlasSprite icon, Transformation transformation, boolean isVoidTube) {
         IconTransformation uvt = new IconTransformation(icon);
-        getOrGeneratePipeModel(modelKey(0x03)).render(ccrs, uvt, transformation);
+        if (isVoidTube) {
+            getOrGeneratePipeModel(modelKey(0x03)).render(ccrs, uvt, transformation,
+                    ColourMultiplier.instance(0xFF7954D0));
+        } else {
+            getOrGeneratePipeModel(modelKey(0x03)).render(ccrs, uvt, transformation);
+        }
     }
 }

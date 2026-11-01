@@ -14,6 +14,7 @@
   "item.projectred_expansion.electric_screwdriver": "Electric Screwdriver",
   "item.projectred_expansion.empty_battery": "Empty Battery",
   "item.projectred_expansion.pneumatic_tube": "Pneumatic Tube",
+  "item.projectred_expansion.void_pneumatic_tube": "Void Pneumatic Tube",
   "item.projectred_expansion.recipe_plan": "Recipe Plan",
   "itemGroup.projectred_expansion": "Project Red: Expansion",
   "projectred-expansion.subtitle.depressurize": "Air depressurizes",

@@ -227,7 +227,7 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
         });
     }
 
-    private void sendPayloadRemoved(Collection<Integer> ids) {
+    protected void sendPayloadRemoved(Collection<Integer> ids) {
         sendUpdate(KEY_PAYLOAD_REMOVE, out -> {
             out.writeInt(ids.size());
             for (int id : ids) {
@@ -716,25 +716,27 @@ public class PneumaticTubePart extends GraphContainerTubePart implements Pneumat
             return false;
         }
 
-        // A route policy must also be able to reject the first physical tube
-        // a payload is being inserted into. Pathfinding normally evaluates
-        // transitions after the start container, which is too late for
-        // per-tube admission rules such as painted tube colours.
-        if (PneumaticRouteRegistry.hasPolicies()) {
-            Direction incomingSide = Direction.values()[side];
-            var decision = PneumaticRouteRegistry.evaluate(
-                    payload,
-                    new PneumaticRouteContext(
-                            level(),
-                            pos().relative(incomingSide),
-                            pos(),
-                            incomingSide.getOpposite(),
-                            0));
-            if (!decision.allowed()) return false;
-        }
+        if (!isEntryAllowedByPolicies(payload, side)) return false;
 
         PneumaticExitPathfinder exitFinder = new PneumaticExitPathfinder(this, getNode().getRouteTable(), payload, ~(1 << side), List.of(PneumaticTransportMode.PASSIVE_NORMAL));
         return exitFinder.result().exitDirMask() != 0;
+    }
+
+    /**
+     * Apply first-tube admission policies to ordinary tubes and terminal tubes.
+     */
+    protected final boolean isEntryAllowedByPolicies(PneumaticTubePayload payload, int side) {
+        if (!PneumaticRouteRegistry.hasPolicies()) return true;
+
+        Direction incomingSide = Direction.values()[side];
+        return PneumaticRouteRegistry.evaluate(
+                payload,
+                new PneumaticRouteContext(
+                        level(),
+                        pos().relative(incomingSide),
+                        pos(),
+                        incomingSide.getOpposite(),
+                        0)).allowed();
     }
 
     @Override
